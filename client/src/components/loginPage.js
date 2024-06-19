@@ -1,15 +1,21 @@
-// src/LoginPage.js
 import React, { useState } from 'react';
+import axios from '../api/axios';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // Handle the login logic here
-    console.log('Username:', username);
-    console.log('Password:', password);
+    try {
+      const response = await axios.post('/login', JSON.stringify({ username, password }));
+      const accessToken = response?.data?.accessToken;
+      console.log(accessToken);
+      setUsername('');
+      setPassword('');
+    } catch (err) {
+      console.log(err)
+    }
   };
 
   return (
@@ -43,8 +49,8 @@ const LoginPage = () => {
         </button>
       </form>
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
-        <a href="#" style={{ marginRight: '10px', color: '#007bff', textDecoration: 'none' }}>Forgot Password?</a>
-        <a href="#" style={{ color: '#007bff', textDecoration: 'none' }}>Register</a>
+        <a style={{ marginRight: '10px', color: '#007bff', textDecoration: 'none' }}>Forgot Password?</a>
+        <a style={{ color: '#007bff', textDecoration: 'none' }}>Register</a>
       </div>
     </div>
   );
