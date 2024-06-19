@@ -43,12 +43,12 @@ const handleLogin = async (req, res) => {
                 newRefreshTokenArray = [];
             }
 
-            res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', maxAge: 24 * 60 * 60 * 1000 });//put secure:true
+            res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', maxAge: 24 * 60 * 60 * 1000 });
         }
         foundUser.refreshToken = [...newRefreshTokenArray, newRefreshToken];
         const query = await foundUser.save();
 
-        res.cookie('jwt', newRefreshToken, { httpOnly: true, sameSite: 'None', maxAge: 24 * 60 * 60 * 1000 }); //put secure:true
+        res.cookie('jwt', newRefreshToken, { httpOnly: true, sameSite: 'None', maxAge: 24 * 60 * 60 * 1000 });
         res.json({
             'success': `User ${username} is logged in!`,
             accessToken
@@ -59,9 +59,11 @@ const handleLogin = async (req, res) => {
 };
 
 const handleSignup = async (req, res, next) => {
-    const { username, password, mail, firstName, lastName, mobile, gender, isAdmin } = req.body;
-    if (!username || !password) return res.status(400).json({ 'message': 'Bad request - Username and Password are required' });
+    const { username, password, mail, firstName, lastName, mobile, gender } = req.body;
+    if (!username || !password || !firstName || !lastName || !mobile || !gender) return res.status(400).json({ 'message': 'Bad request - Username and Password are required' });
     if (password.length < 8) return res.status(400).json({ 'message': 'password must have minimun length of 8 characters' });
+    if (mobile.length !== 10) return res.status(400).json({ 'message': 'mobile must have length of 10 characters' });
+    if (gender.length !== 1) return res.status(400).json({ 'message': 'gender must have length of 1 characters' });
 
     const duplicateUser = await User.findOne({ username }).exec();
     if (duplicateUser) return res.status(409).json({ 'message': 'Conflict - User already exists!' });
@@ -75,50 +77,43 @@ const handleSignup = async (req, res, next) => {
     if (!validUser) return res.status(406).json({ 'message': 'Not acceptable - Username should contain only alphabets or numbers or underscore and minimun 8 characters required' });
     if (!validMail) return res.status(406).json({ 'message': 'Not acceptable - Mail should be correctly formatted' });
 
-    if (isAdmin && !(await bcrypt.compare(adminKey, process.env.ADMIN_SECRET_KEY_HASH))) return res.status(400).json({ 'message': 'invalid adminKey' });
     try {
-        if (!isAdmin) {
-            const pwdhash = await bcrypt.hash(password, 10);
+        const pwdhash = await bcrypt.hash(password, 10);
 
-            const query = await User.create({
-                username,
-                password: pwdhash,
-                mail,
-                firstName,
-                lastName,
-                mobile,
-                gender
-            });
-            await query.save();
+        const query = await User.create({
+            username,
+            password: pwdhash,
+            mail,
+            firstName,
+            lastName,
+            mobile: parseInt(mobile),
+            gender
+        });
+        await query.save();
 
-            res.status(201).json({ 'success': 'Created - User created' });
-        }
-        else {
-            const pwdhash = await bcrypt.hash(password, 12);
-            const user = new User({
-                username,
-                password: pwdhash,
-                mail,
-                firstName,
-                lastName,
-                mobile,
-                gender
-            });
-            const admin = new Admin({
-                user: user._id
-            });
-            await admin.save();
-
-            user.roles.push(102);
-            user.admin = admin._id;
-            await user.save();
-
-            res.status(201).json({ 'success': 'Created - Admin created' });
-        }
+        res.status(201).json({ 'success': 'Created - User created' });
     }
     catch (err) {
         next(err);
     }
 };
 
-module.exports = { handleLogin, handleSignup };
+const handleLogout = async (req, res) => {
+    const cookies = req.cookies;
+    if (!cookies?.jwt) return res.status(204).json({ 'message': 'No content' });
+
+    const refreshToken = cookies.jwt;
+    const foundUser = await User.findOne({ refreshToken }).exec();
+    if (!foundUser) {
+        res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', maxAge: 24 * 60 * 60 * 1000 });
+        return res.status(204).json({ 'message': 'No content' });
+    }
+
+    foundUser.refreshToken = foundUser.refreshToken.filter(rt => rt !== refreshToken);;
+    const query = await foundUser.save();
+
+    res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', maxAge: 24 * 60 * 60 * 1000 });
+    res.status(204).json({ 'message': 'No content' });
+};
+
+module.exports = { handleLogin, handleSignup, handleLogout };

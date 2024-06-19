@@ -39,10 +39,6 @@ const userSchema = new Schema({
         type: [Number],
         enum: [101, 102]
     },
-    admin: {
-        type: Schema.Types.ObjectId,
-        ref: 'Admin'
-    },
     refreshToken: [String]
 });
 
