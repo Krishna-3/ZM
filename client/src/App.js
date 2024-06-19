@@ -1,12 +1,15 @@
 import './App.css';
 import RegistrationForm from './components/registration';
+import React from "react";
+import LoginPage from "./components/loginPage";
 
-function App() {
+const App = () => {
   return (
     <div className="App">
-      <RegistrationForm/>
+      <RegistrationForm />
+      <LoginPage />
     </div>
   );
-}
+};
 
 export default App;

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from '../api/axios'
 import styled from 'styled-components';
 
 const FormContainer = styled.div`
@@ -69,7 +70,7 @@ const SubmitButton = styled.button`
   }
 `;
 
-function RegistrationForm() {
+const RegistrationForm = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -80,27 +81,24 @@ function RegistrationForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState(null);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     if (password !== confirmPassword) {
       setError('Passwords do not match');
-    } else if (!validateEmail(email)) {
+    } else if (!validateEmail(email) || password.length < 8) {
       setError('Invalid email address');
-    } else if (!validateMobile(mobile)) {
+    } else if (!validateMobile(mobile) || mobile.length !== 10) {
       setError('Invalid mobile number');
     } else {
-      // Send the form data to the server
-      console.log('Form submitted:', {
-        firstName,
-        lastName,
-        email,
-        mobile,
-        username,
-        gender,
-        password,
-      });
-      alert('New user created!');
-      // Reset the form fields
+      try {
+        const response = await axios.post('/signup', JSON.stringify({ username, password, firstName, lastName, mail: email, mobile, gender }));
+        const res = response?.data;
+        console.log(res);
+        setUsername('');
+        setPassword('');
+      } catch (err) {
+        setError(err)
+      }
       setFirstName('');
       setLastName('');
       setEmail('');
@@ -114,7 +112,7 @@ function RegistrationForm() {
   };
 
   const validateEmail = (email) => {
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const re = /^[a-zA-Z0-9-.]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/gm;
     return re.test(email);
   };
 
@@ -164,7 +162,7 @@ function RegistrationForm() {
               required
             />
           </FormGroup>
-          
+
           <FormGroup>
             <FormLabel>Gender:</FormLabel>
             <FormSelect
@@ -173,8 +171,8 @@ function RegistrationForm() {
               required
             >
               <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
             </FormSelect>
           </FormGroup>
           <FormGroup>
